@@ -1,0 +1,252 @@
+Protocol Messages (This is the closest you get to documentation)
+
+1. HELO - Can you hear me?
+  The HELO messages is sent at regular intervals to help nodes maintain a table of RSSI
+  link state information for neighboring nodes.
+
+    0
+    0 1 2 3 4 5 6 7
+   +-+-+-+-+-+-+-+-+
+   |    Command    |
+   +-+-+-+-+-+-+-+-+
+
+    Command   0x00    HELO messages have a command byte of 0x00
+
+  Example
+    0
+    0 1 2 3 4 5 6 7
+   +-+-+-+-+-+-+-+-+
+   |     0x00      |
+   +-+-+-+-+-+-+-+-+
+
+2. SREQ - Status Request
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Command    |      TTL      |           Sequence            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             Origin            |          Destination          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Command   0x01    State Request (SREQ) messages have a command byte of 0x01
+
+    TTL               The TTL is initialized with a value of 0xFF and is decremented
+			at each hop. When the TTL reaches zero the packet is discarded.
+
+    Sequence          Sequence number is used to prevent infinite rebroadcasts.
+                      Valid sequence number for each source are from 0x01 to 0xff and
+			are incremented for each new message.
+
+    Origin            The short address of the node originating the ping request.
+
+    Destination       The short address of the node being pinged
+
+  Example
+    Status request from 0xF001 -> 0xF002
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |       0x01    |     0xFF      |             0x0001            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             0xF001            |             0xF002            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+3. SRES - Status Response
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Command    |      TTL      |           Sequence            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             Origin            |          Destination          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Node Count   |                  Reserved                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Node 0 Index  |        Node 0 Address         |  Node 0 RSSI  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Node 0 Update Time                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Node 1 Index  |        Node 1 Address         |  Node 1 RSSI  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Node 1 Update Time                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                            . . .                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Node n Index  |        Node n Address         |  Node n RSSI  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Node n Update Time                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Command   0x02    State Response (SRES) messages have a command byte of 0x02
+
+    TTL               The TTL is initialized with a value of 0xFF and is decremented
+			at each hop. When the TTL reaches zero the packet is discarded.
+
+    Sequence          Sequence number is used to prevent infinite rebroadcasts.
+
+    Origin            The short address of the node originating the ping request.
+
+    Destination       The short address of the node being pinged
+
+    Node Count        Number of nodes being reported. A maximum of 10 nodes may reported.
+
+    Reserved          Reserved bytes must be set to 0x00
+
+    Node Index        Index of the reported node in the responding nodes state table.
+			This is used to allow for the transmission of more than 10.
+
+    Node Address      The short address of the node being reported
+
+    Node RSSI         The RSSI of the most recent transmission from the reported node
+			to the responding node.
+
+    Node Update Time  Update time of the RSSI of the reported node
+
+  Example
+    Status response from 0xF002 -> 0xF001 given the following state table for node 0xF002
+        Index   Address   RSSI  Update Time
+        0x01    0xF001    0xB4  0x0000A202
+        0x02    0xF003    0x42  0x0000A1F9
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x02      |     0xFF      |             0x0001            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             0xF002            |             0xF001            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x02      |                  0x000000                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x01      |            0xF001             |     0xB4      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          0x0000A202                           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x02      |            0xF003             |     0x42      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          0x0000A1F9                           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+4. ROBO - Robot Control
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Command    |      TTL      |           Sequence            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             Origin            |          Destination          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Action     |                  Reserved                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Command   0x07    Robot Control messages have a command byte of 0x07
+
+    TTL               The TTL is initialized with a value of 0xFF and is decremented at each hop.
+                      When the TTL reaches zero the packet is discarded.
+
+    Sequence          Sequence number is used to prevent infinite rebroadcasts.
+                      Valid sequence number for each source are from 0x01 to 0xff and are incremented
+                      for each new message.
+
+    Origin            The short address of the node originating the ping request.
+
+    Destination       The short address of the node being pinged
+
+    Action            Commanded action
+              0x00    INIT    This command initializes the robot and enables operation
+              0x01    STOP    The stop command causes the robot to stop all motion
+              0x02    FWD     The robot's forward speed is set to 128 mm/sec
+              0x03    LEFT    128 mm/sec forward speed and a 128mm turning radius CCW
+              0x04    RIGHT   128 mm/sec forward speed and a 128mm turning radius CW
+              0xFF    ACK     Upon receipt of a control message the robot responds with an ACK
+                              sent to the originating node
+
+    Reserved          Reserved bytes must be set to 0x00
+
+  Example
+    Command from 0xF000 -> 0xF001 to turn the robot left.
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x07      |     0xFF      |             0x0001            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |             0xF000            |             0xF001            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |     0x03      |                  0x000000                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+5. SYNC_REQ - Synchronization Request
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Command    |       State       |     Requester's Time      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |Requester Time |                  Reserved                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Command	0x09	Synchronization Requests (SYNC_REQ) messages have a command byte of 0x09.
+
+    State		The State is the current state of synchronization the requesting node
+		0x00	Request sent - The node transmits its current time to be compared.
+		0x01	Sychronization Time Received - The node changes its time to that
+			of the transmitted time.
+		0x02	Synchronized - The node updates its time to account for transmission
+			costs as well.
+
+    Requester's Time	The Requester's Time is the time of the requesting node being
+			transmitted for comparison purposes.
+
+
+  Example
+    Synchronization request of a node that has just sent its request sent at time 0x01B4D2
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      0x09     |        0x00       |           0x01B4          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      0xD2     |                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+6. SYNC_ACK - Synchronization Acknowledgement
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    Command    |       State       |      Provider's Time      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Provider Time |                 Reserved                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Command	0x0A	Synchronization Requests (SYNC_REQ) messages have a command byte of 0x0A.
+
+    State		The State is the current state of synchronization the
+			requesting node is currently in.
+		0x00	Request Received - The node has received the request and has
+			transmitted the calculated offset.
+		0x01	Request for Confirmation Received - The node has received the
+			transmission offset time and has transmitted that calculation
+			as well.
+		0x02	Synchronization Acknowledged - The node has transmitted a
+			confirmation of synchronization.
+
+
+    Provider's Time	The Requester's Time is the time of the requesting node being
+			transmitted for comparison purposes.
+
+  Example
+    Synchronization Acknowledgement of a node that has just responded to a request
+    for confirmation with its time 0x9021C3
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      0x0A     |        0x01       |           0x9021          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      0xC3     |                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
